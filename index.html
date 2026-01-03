@@ -1,330 +1,321 @@
-import React, { useState, useEffect } from 'react';
-import { Database, FileText, ArrowRight, Layers, Zap, Trash2, Edit3, Save, RefreshCw, Cpu, HardDrive } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge-on-Read Philosophy Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .patch-anim { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn {
+            from { transform: translateY(20px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(0.9); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen p-4 md:p-8">
 
-const App = () => {
-  const [view, setView] = useState('concept'); // concept, simulation, comparison
-  const [mode, setMode] = useState('cow'); // cow (Copy-on-Write) vs mor (Merge-on-Read)
-  const [dataFiles, setDataFiles] = useState([
-    { id: 1, rows: [1, 2, 3], version: 1, status: 'active' },
-    { id: 2, rows: [4, 5, 6], version: 1, status: 'active' }
-  ]);
-  const [logs, setLogs] = useState(["System Ready. Waiting for updates..."]);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const addLog = (msg) => setLogs(prev => [msg, ...prev].slice(0, 5));
-
-  const handleUpdate = async (rowId) => {
-    setIsProcessing(true);
-    if (mode === 'cow') {
-      addLog(`Updating Row ${rowId} via Copy-on-Write...`);
-      // Simulating heavy I/O: Rewrite the whole file
-      setTimeout(() => {
-        setDataFiles(prev => prev.map(f => {
-          if (f.rows.includes(rowId)) {
-            return { ...f, version: f.version + 1, lastAction: 'rewritten' };
-          }
-          return f;
-        }));
-        addLog(`FILE REWRITTEN: Entire block updated to version ${dataFiles.find(f => f.rows.includes(rowId)).version + 1}`);
-        setIsProcessing(false);
-      }, 1000);
-    } else {
-      addLog(`Updating Row ${rowId} via Merge-on-Read/Patch...`);
-      // Simulating lightweight I/O: Just add a tiny patch
-      setTimeout(() => {
-        setDataFiles(prev => [
-          ...prev,
-          { id: Date.now(), type: 'patch', targetRow: rowId, status: 'active', version: 'delta' }
-        ]);
-        addLog(`PATCH ADDED: A small 1KB delta file recorded for Row ${rowId}`);
-        setIsProcessing(false);
-      }, 500);
-    }
-  };
-
-  const reset = () => {
-    setDataFiles([
-      { id: 1, rows: [1, 2, 3], version: 1, status: 'active' },
-      { id: 2, rows: [4, 5, 6], version: 1, status: 'active' }
-    ]);
-    setLogs(["System Reset."]);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 md:p-8">
-      {/* Header */}
-      <div className="max-w-6xl mx-auto mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-          <Layers className="text-blue-600" />
-          The "Merge-on-Read" Philosophy
-        </h1>
-        <p className="text-slate-600 mt-2 text-lg">
-          Exploring the architectural shift from rewriting entire datasets to incremental patching.
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="max-w-6xl mx-auto flex gap-4 mb-6">
-        <button 
-          onClick={() => setView('concept')}
-          className={`px-4 py-2 rounded-lg font-medium transition ${view === 'concept' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-        >
-          Philosophy & Concept
-        </button>
-        <button 
-          onClick={() => setView('simulation')}
-          className={`px-4 py-2 rounded-lg font-medium transition ${view === 'simulation' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-        >
-          Interactive Simulation
-        </button>
-      </div>
-
-      {view === 'concept' ? (
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <HardDrive className="text-orange-500" />
-              The Old Way: Copy-on-Write (CoW)
-            </h2>
-            <p className="text-slate-600 mb-4">
-              Think of this like editing a hard-copy book. To change one sentence on page 50, you have to reprint the entire book.
+    <div id="app" class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-800 flex items-center gap-3">
+                <i data-lucide="layers" class="text-blue-600"></i>
+                The "Merge-on-Read" Philosophy
+            </h1>
+            <p class="text-slate-600 mt-2 text-lg">
+                Visualizing the architectural shift from rewriting entire datasets (CoW) to incremental patching (MoR).
             </p>
-            <ul className="space-y-3">
-              <li className="flex gap-2 text-sm text-slate-700">
-                <div className="h-5 w-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">!</div>
-                <strong>High Write Amplification:</strong> Changing 1KB might force a 100MB file rewrite.
-              </li>
-              <li className="flex gap-2 text-sm text-slate-700">
-                <div className="h-5 w-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">✓</div>
-                <strong>Peak Read Speed:</strong> Queries are fast because data is pre-merged and organized.
-              </li>
-            </ul>
-            <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 italic text-sm text-slate-500">
-              "Prioritize the reader's time over the writer's effort."
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Zap className="text-yellow-500" />
-              The Modern Way: Merge-on-Read (MoR)
-            </h2>
-            <p className="text-slate-600 mb-4">
-              Instead of reprinting the book, you just stick a "Post-it" note on page 50 with the correction.
-            </p>
-            <ul className="space-y-3">
-              <li className="flex gap-2 text-sm text-slate-700">
-                <div className="h-5 w-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">✓</div>
-                <strong>Instant Ingestion:</strong> Just write the "patch" (Delete file in Iceberg / Patch part in ClickHouse).
-              </li>
-              <li className="flex gap-2 text-sm text-slate-700">
-                <div className="h-5 w-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">!</div>
-                <strong>Read Complexity:</strong> The database must "merge" the book and the Post-it notes during the query.
-              </li>
-            </ul>
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-dashed border-blue-200 italic text-sm text-blue-700">
-              "Defer the heavy work until someone actually needs the data."
-            </div>
-          </div>
-
-          <div className="md:col-span-2 bg-slate-800 text-white p-8 rounded-2xl">
-            <h2 className="text-2xl font-bold mb-6">Why is this better for Big Data?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-blue-400 font-bold mb-2 uppercase text-xs tracking-widest">Streaming Velocity</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  In a world of real-time events (IoT, Banking, Telecomm), we can't wait for 1GB files to rewrite every second. MoR allows "Append-only" workflows that never stop.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-blue-400 font-bold mb-2 uppercase text-xs tracking-widest">Cloud Economics</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  On S3 or GCS, rewriting files costs money and I/O. Writing small "deltas" is significantly cheaper and avoids API rate limits during high-frequency updates.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-blue-400 font-bold mb-2 uppercase text-xs tracking-widest">Unified Logic</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Whether it's <strong>Iceberg's Delete Files</strong> or <strong>ClickHouse's ReplacingMergeTree</strong>, the pattern is the same: Decouple the <em>Update</em> from the <em>Storage</em>.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
-      ) : (
-        <div className="max-w-6xl mx-auto space-y-6">
-          {/* Controls */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
-              <button 
-                onClick={() => setMode('cow')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition ${mode === 'cow' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
-              >
-                Copy-on-Write (Iceberg CoW)
-              </button>
-              <button 
-                onClick={() => setMode('mor')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition ${mode === 'mor' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
-              >
-                Merge-on-Read (Iceberg MoR / CH Patches)
-              </button>
-            </div>
-            
-            <button 
-              onClick={reset}
-              className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-medium"
-            >
-              <RefreshCw size={16} /> Reset Simulation
+
+        <!-- Navigation -->
+        <div class="flex gap-4 mb-6">
+            <button id="btn-concept" onclick="switchView('concept')" class="px-4 py-2 rounded-lg font-medium transition bg-blue-600 text-white shadow-md">
+                Philosophy & Concept
             </button>
-          </div>
+            <button id="btn-simulation" onclick="switchView('simulation')" class="px-4 py-2 rounded-lg font-medium transition bg-white text-slate-600 hover:bg-slate-100">
+                Interactive Simulation
+            </button>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Storage Visualization */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[400px]">
-                <h3 className="font-bold text-slate-400 uppercase text-xs mb-6 tracking-widest flex items-center gap-2">
-                  <Database size={14} /> Physical Storage Layout
-                </h3>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {dataFiles.map((file, idx) => (
-                    <div 
-                      key={file.id} 
-                      className={`relative p-4 rounded-xl border-2 transition-all duration-500 ${
-                        file.type === 'patch' 
-                          ? 'bg-yellow-50 border-yellow-200 scale-90' 
-                          : 'bg-white border-slate-200 shadow-sm'
-                      } ${file.lastAction === 'rewritten' ? 'ring-4 ring-blue-100' : ''}`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <FileText className={file.type === 'patch' ? 'text-yellow-600' : 'text-blue-500'} size={20} />
-                        <span className="text-[10px] font-mono bg-slate-100 px-1 rounded">
-                          {file.type === 'patch' ? 'PATCH_FILE' : `BASE_FILE_V${file.version}`}
-                        </span>
-                      </div>
-                      
-                      {file.type === 'patch' ? (
-                        <div className="mt-2">
-                          <p className="text-xs font-bold text-yellow-700">UPDATE ROW {file.targetRow}</p>
-                          <p className="text-[10px] text-yellow-600 mt-1">Status: Unmerged</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          {file.rows.map(r => (
-                            <div key={r} className="flex items-center justify-between group">
-                              <span className="text-sm font-medium text-slate-600">Row ID: {r}</span>
-                              <button 
-                                disabled={isProcessing}
-                                onClick={() => handleUpdate(r)}
-                                className="opacity-0 group-hover:opacity-100 bg-blue-500 text-white p-1 rounded hover:bg-blue-600 transition"
-                              >
-                                <Edit3 size={12} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {file.lastAction === 'rewritten' && (
-                        <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                          NEW VERSION
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {isProcessing && (
-                  <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-2xl backdrop-blur-[1px]">
-                    <div className="flex flex-col items-center gap-3">
-                      <RefreshCw className="animate-spin text-blue-600" size={32} />
-                      <p className="font-bold text-slate-700">Writing to disk...</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* The "Read" Result */}
-              <div className="bg-slate-900 rounded-2xl p-6 text-white overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <Cpu size={120} />
-                </div>
-                <h3 className="font-bold text-blue-400 uppercase text-xs mb-4 tracking-widest">
-                  Query Output (Select * FROM Table {mode === 'mor' ? 'FINAL' : ''})
-                </h3>
-                <div className="flex flex-col gap-2 relative z-10">
-                  <p className="text-sm text-slate-400 mb-2">
-                    {mode === 'mor' 
-                      ? "CPU is currently calculating the 'Merge' by scanning base files AND applying patch overlays..."
-                      : "Direct scan from base files. No CPU overhead for merging."}
-                  </p>
-                  <div className="bg-slate-800 p-3 rounded-lg font-mono text-xs flex gap-4 overflow-x-auto">
-                    {[1, 2, 3, 4, 5, 6].map(id => (
-                      <div key={id} className="text-center">
-                        <div className="text-slate-500 mb-1">Row {id}</div>
-                        <div className="bg-slate-700 px-3 py-1 rounded text-green-400">
-                          {dataFiles.find(f => f.type === 'patch' && f.targetRow === id) ? 'v_patch' : 'v_base'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar / Logs */}
-            <div className="space-y-4">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <ArrowRight size={18} className="text-blue-500" /> System Logs
-                </h3>
-                <div className="space-y-3">
-                  {logs.map((log, i) => (
-                    <div key={i} className={`text-xs p-2 rounded-lg border-l-4 font-mono ${
-                      log.includes('REWRITTEN') ? 'bg-blue-50 border-blue-500' :
-                      log.includes('PATCH') ? 'bg-yellow-50 border-yellow-500' :
-                      'bg-slate-50 border-slate-300'
-                    }`}>
-                      {log}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-lg">
-                <h3 className="font-bold mb-2">Architect's Note</h3>
-                <p className="text-sm opacity-90 leading-relaxed">
-                  Notice that in <strong>Merge-on-Read</strong> mode, we never touch the original blue files. We just keep adding small yellow patches. 
-                  <br /><br />
-                  This is exactly how <strong>ClickHouse Lightweight Deletes</strong> and <strong>Iceberg Positional Deletes</strong> work!
+        <!-- View: Concept -->
+        <div id="view-concept" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <i data-lucide="hard-drive" class="text-orange-500"></i>
+                    The Old Way: Copy-on-Write (CoW)
+                </h2>
+                <p class="text-slate-600 mb-4 italic">"The Librarian Strategy"</p>
+                <p class="text-slate-700 mb-4 text-sm leading-relaxed">
+                    To update a single record, the database must read the entire data file, apply the change in memory, and write a brand new version of the file.
                 </p>
-              </div>
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div class="flex gap-2 text-sm">
+                        <span class="text-red-500 font-bold">●</span>
+                        <span><strong>Write Amplification:</strong> 1 row update = 1GB file rewrite.</span>
+                    </div>
+                    <div class="flex gap-2 text-sm">
+                        <span class="text-green-500 font-bold">●</span>
+                        <span><strong>Peak Read Speed:</strong> Queries are perfectly optimized.</span>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Footer Info */}
-      <footer className="max-w-6xl mx-auto mt-12 pt-8 border-t border-slate-200">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-slate-500">
-          <div>
-            <h4 className="font-bold text-slate-700 mb-2">Key Pointers for Implementation</h4>
-            <ul className="list-disc ml-5 space-y-1">
-              <li><strong>Compaction is Required:</strong> You can't have patches forever. Eventually, you must run a "Compaction" job to merge patches into base files.</li>
-              <li><strong>Read vs Write Trade-off:</strong> If you need sub-millisecond query responses, use CoW. If you need 100k updates/sec, use MoR.</li>
-              <li><strong>ClickHouse Context:</strong> `ReplacingMergeTree` is effectively a "Patching" engine that requires `SELECT ... FINAL` to show the true state.</li>
-            </ul>
-          </div>
-          <div className="flex flex-col justify-end items-start md:items-end">
-            <div className="flex items-center gap-2 mb-2 font-bold text-slate-700">
-              <Database size={16} /> Apache Iceberg & ClickHouse
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <i data-lucide="zap" class="text-yellow-500"></i>
+                    The Modern Way: Merge-on-Read (MoR)
+                </h2>
+                <p class="text-slate-600 mb-4 italic">"The Sticky-Note Strategy"</p>
+                <p class="text-slate-700 mb-4 text-sm leading-relaxed">
+                    Don't touch the original file. Simply write a tiny "Patch" or "Delete" file on the side. When a query comes, merge them on-the-fly.
+                </p>
+                <div class="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <div class="flex gap-2 text-sm">
+                        <span class="text-green-500 font-bold">●</span>
+                        <span><strong>Instant Commits:</strong> Optimized for high-frequency streaming.</span>
+                    </div>
+                    <div class="flex gap-2 text-sm">
+                        <span class="text-red-500 font-bold">●</span>
+                        <span><strong>CPU Penalty:</strong> The query engine must merge data at runtime.</span>
+                    </div>
+                </div>
             </div>
-            <p>The Unified Architecture of Modern Data Lakes and Warehouses.</p>
-          </div>
+
+            <div class="md:col-span-2 bg-slate-800 text-white p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold mb-6">Why Big Data Prefers the "Patch"</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                        <h3 class="text-blue-400 font-bold mb-2 uppercase text-xs tracking-tighter">Cloud Scale</h3>
+                        <p class="text-sm opacity-80">Object storage (S3/GCS) is immutable. You can't edit a file; you can only replace it. Patching saves millions in I/O costs.</p>
+                    </div>
+                    <div>
+                        <h3 class="text-blue-400 font-bold mb-2 uppercase text-xs tracking-tighter">CDC & Streaming</h3>
+                        <p class="text-sm opacity-80">When streaming data from Kafka, waiting for full file rewrites creates huge bottlenecks. MoR allows "Append-Only" flow.</p>
+                    </div>
+                    <div>
+                        <h3 class="text-blue-400 font-bold mb-2 uppercase text-xs tracking-tighter">Eventual Compaction</h3>
+                        <p class="text-sm opacity-80">The system cleans up the "Sticky Notes" in the background, turning them into clean books when the system is idle.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </footer>
+
+        <!-- View: Simulation -->
+        <div id="view-simulation" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex gap-2 bg-slate-100 p-1 rounded-xl">
+                    <button id="btn-mode-cow" onclick="setMode('cow')" class="px-4 py-2 rounded-lg text-sm font-bold bg-white shadow text-slate-800">
+                        Copy-on-Write
+                    </button>
+                    <button id="btn-mode-mor" onclick="setMode('mor')" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-500">
+                        Merge-on-Read (Patches)
+                    </button>
+                </div>
+                <button onclick="resetSim()" class="text-slate-500 hover:text-slate-800 text-sm font-medium flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reset
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Physical Storage -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[400px] relative">
+                        <h3 class="font-bold text-slate-400 uppercase text-xs mb-6 tracking-widest flex items-center gap-2">
+                            <i data-lucide="database" class="w-4 h-4"></i> Physical Storage Layout
+                        </h3>
+                        
+                        <div id="file-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <!-- Files injected here -->
+                        </div>
+
+                        <!-- Processing Overlay -->
+                        <div id="loader" class="hidden absolute inset-0 bg-white/60 flex items-center justify-center rounded-2xl backdrop-blur-[1px] z-20">
+                            <div class="text-center">
+                                <i data-lucide="refresh-cw" class="w-10 h-10 animate-spin text-blue-600 mx-auto"></i>
+                                <p id="loader-text" class="mt-4 font-bold text-slate-800">Processing I/O...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Virtual View -->
+                    <div class="bg-slate-900 p-6 rounded-2xl text-white">
+                        <h3 class="font-bold text-blue-400 uppercase text-xs mb-4 tracking-widest flex items-center gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4"></i> Query Result (Select * FINAL)
+                        </h3>
+                        <div id="query-result" class="flex gap-4 overflow-x-auto pb-2">
+                            <!-- Rows injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs -->
+                <div class="space-y-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-800 mb-4">System Log</h3>
+                        <div id="log-container" class="space-y-3 font-mono text-[11px]">
+                            <!-- Logs injected here -->
+                        </div>
+                    </div>
+                    <div class="bg-blue-600 text-white p-6 rounded-2xl">
+                        <h4 class="font-bold mb-2">Did you know?</h4>
+                        <p class="text-sm opacity-90 leading-relaxed">
+                            In ClickHouse, when you use <span class="bg-blue-700 px-1 rounded">ReplacingMergeTree</span>, you are effectively performing a Merge-on-Read. The database stores every version of the row until a background "Merge" occurs.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  );
-};
 
-export default App;
+    <script>
+        // State
+        let currentView = 'concept';
+        let currentMode = 'cow';
+        let dataFiles = [
+            { id: 1, rows: [1, 2, 3], version: 1, type: 'base' },
+            { id: 2, rows: [4, 5, 6], version: 1, type: 'base' }
+        ];
+        let logs = ["System Ready."];
+        let isProcessing = false;
+
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('view-concept').classList.toggle('hidden', view !== 'concept');
+            document.getElementById('view-simulation').classList.toggle('hidden', view !== 'simulation');
+            
+            document.getElementById('btn-concept').className = view === 'concept' ? 
+                'px-4 py-2 rounded-lg font-medium transition bg-blue-600 text-white shadow-md' : 
+                'px-4 py-2 rounded-lg font-medium transition bg-white text-slate-600 hover:bg-slate-100';
+            
+            document.getElementById('btn-simulation').className = view === 'simulation' ? 
+                'px-4 py-2 rounded-lg font-medium transition bg-blue-600 text-white shadow-md' : 
+                'px-4 py-2 rounded-lg font-medium transition bg-white text-slate-600 hover:bg-slate-100';
+            
+            if(view === 'simulation') render();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-mode-cow').className = mode === 'cow' ? 
+                'px-4 py-2 rounded-lg text-sm font-bold bg-white shadow text-slate-800' : 'px-4 py-2 rounded-lg text-sm font-bold text-slate-500';
+            document.getElementById('btn-mode-mor').className = mode === 'mor' ? 
+                'px-4 py-2 rounded-lg text-sm font-bold bg-white shadow text-slate-800' : 'px-4 py-2 rounded-lg text-sm font-bold text-slate-500';
+            addLog(`Switched to ${mode === 'cow' ? 'Copy-on-Write' : 'Merge-on-Read'} mode.`);
+        }
+
+        function addLog(msg) {
+            logs.unshift(msg);
+            if(logs.length > 6) logs.pop();
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = logs.map(l => `
+                <div class="p-2 rounded bg-slate-50 border-l-2 ${l.includes('PATCH') ? 'border-yellow-500' : 'border-blue-500'}">
+                    ${l}
+                </div>
+            `).join('');
+        }
+
+        async function handleUpdate(rowId) {
+            if(isProcessing) return;
+            isProcessing = true;
+            document.getElementById('loader').classList.remove('hidden');
+            
+            if(currentMode === 'cow') {
+                document.getElementById('loader-text').innerText = `Rewriting 100MB Base File...`;
+                addLog(`UPDATING: Row ${rowId} (CoW mode)`);
+                await new Promise(r => setTimeout(r, 1200));
+                dataFiles = dataFiles.map(f => {
+                    if (f.rows && f.rows.includes(rowId)) return { ...f, version: f.version + 1, status: 'rewritten' };
+                    return f;
+                });
+                addLog(`SUCCESS: New File Version V${dataFiles.find(f => f.rows && f.rows.includes(rowId)).version} written.`);
+            } else {
+                document.getElementById('loader-text').innerText = `Writing 1KB Patch Delta...`;
+                addLog(`PATCHING: Row ${rowId} (MoR mode)`);
+                await new Promise(r => setTimeout(r, 600));
+                dataFiles.push({ id: Date.now(), type: 'patch', target: rowId });
+                addLog(`SUCCESS: Delta file added for ID ${rowId}.`);
+            }
+            
+            isProcessing = false;
+            document.getElementById('loader').classList.add('hidden');
+            render();
+        }
+
+        function resetSim() {
+            dataFiles = [
+                { id: 1, rows: [1, 2, 3], version: 1, type: 'base' },
+                { id: 2, rows: [4, 5, 6], version: 1, type: 'base' }
+            ];
+            logs = ["System Reset."];
+            render();
+        }
+
+        function render() {
+            const grid = document.getElementById('file-grid');
+            grid.innerHTML = dataFiles.map(file => {
+                if(file.type === 'base') {
+                    return `
+                        <div class="relative p-4 rounded-xl border-2 bg-white border-slate-200 shadow-sm transition-all">
+                            <div class="flex justify-between items-center mb-4">
+                                <i data-lucide="file-text" class="text-blue-500 w-5 h-5"></i>
+                                <span class="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded">BASE_V${file.version}</span>
+                            </div>
+                            <div class="space-y-2">
+                                ${file.rows.map(r => `
+                                    <div class="flex justify-between items-center group">
+                                        <span class="text-xs text-slate-600 font-medium">Row #${r}</span>
+                                        <button onclick="handleUpdate(${r})" class="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition">
+                                            <i data-lucide="edit-2" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="patch-anim relative p-4 rounded-xl border-2 bg-yellow-50 border-yellow-200 scale-90">
+                            <div class="flex justify-between items-center mb-2">
+                                <i data-lucide="zap" class="text-yellow-600 w-5 h-5"></i>
+                                <span class="text-[9px] font-bold bg-yellow-100 px-2 py-0.5 rounded">DELTA</span>
+                            </div>
+                            <p class="text-[10px] font-bold text-yellow-800 uppercase">Update Row ${file.target}</p>
+                            <p class="text-[9px] text-yellow-600 mt-1">Pending merge...</p>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            const results = document.getElementById('query-result');
+            const rowData = [1, 2, 3, 4, 5, 6].map(id => {
+                const hasPatch = dataFiles.some(f => f.type === 'patch' && f.target === id);
+                return `
+                    <div class="text-center min-w-[60px]">
+                        <div class="text-[10px] text-slate-500 mb-1">ID ${id}</div>
+                        <div class="py-1 px-2 rounded border border-slate-700 text-[10px] font-bold ${hasPatch ? 'text-yellow-400' : 'text-green-400'}">
+                            ${hasPatch ? 'PATCHED' : 'BASE'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            results.innerHTML = rowData;
+
+            lucide.createIcons();
+            renderLogs();
+        }
+
+        // Init
+        window.onload = () => {
+            lucide.createIcons();
+            render();
+        };
+    </script>
+</body>
+</html>
